@@ -26,7 +26,7 @@ class Product(Base):
     created_at = Column(DateTime, index=True)
     updated_at = Column(DateTime, index=True)
     is_active = Column(Boolean, index=True)
-    owner = Column(Integer, ForeignKey('user.id'))
+    owner = Column(Integer, ForeignKey('users.id'))
 
 
 

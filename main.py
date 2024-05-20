@@ -1,8 +1,8 @@
 import datetime
-import phonenumbers
 from fastapi import FastAPI, Depends, HTTPException
 from pydantic import BaseModel, Field, constr, EmailStr
 from typing import Optional, Union, List, Annotated
+from fastapi.responses import JSONResponse
 
 import models
 from database import engine, SessionLocal
@@ -31,10 +31,13 @@ class Product(BaseModel):
     title: str
     description: Optional[str] = None
     price: int
-    created_at: str
-    updated_at: str
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
     is_active: bool
     owner: Optional[int] = None
+
+    class Config:
+        exclude = "owner"
 
 
 class Cart(BaseModel):
@@ -51,6 +54,18 @@ def get_db():
 
 
 db_dependency = Annotated[Session, Depends(get_db)]
+
+
+@app.get("/login/")
+async def login():
+    """вход"""
+    pass
+
+
+@app.get("/logout/")
+async def logout():
+    """выход"""
+    pass
 
 
 @app.post("/user/")
@@ -93,7 +108,37 @@ async def delete_user(user_id: int, db: db_dependency):
 
 
 @app.put("/user/put/{id}")
-async def update_user(user_id: int, db: db_dependency):
+async def update_user(user_id: int, user: Annotated[User, Depends()], db: db_dependency):
     """редактирование пользователя"""
 
-    pass
+    result = db.query(models.User).filter(models.User.id == user_id).first()
+
+    if not result:
+        raise HTTPException(status_code=404, detail="такой пользователь не найден")
+
+    else:
+        result.username = user.username
+        result.email = user.email
+        result.mobile = validate_mobile(user.mobile)
+        result.password = user.password
+        result.password2 = user.password2
+
+        db.commit()
+
+        return user
+
+
+@app.post("/product/")
+async def create_product(product: Annotated[Product, Depends()], db: db_dependency):
+    """создание продукта, нужно доработать"""
+
+    db_product = models.Product(title=product.title, description=product.description, price=product.price,
+                                created_at=datetime.datetime.now(), is_active=product.is_active, owner=product.owner)
+    db_product.update_at = None
+    db.add(db_product)
+    db.commit()
+    db.refresh(db_product)
+
+
+    return product
+
