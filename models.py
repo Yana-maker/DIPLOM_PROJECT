@@ -29,7 +29,6 @@ class Product(Base):
     owner = Column(Integer, ForeignKey('users.id'))
 
 
-
 class Cart(Base):
     """таблица в БД корзина"""
     __tablename__ = 'cart'

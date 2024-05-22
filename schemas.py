@@ -1,0 +1,75 @@
+from pydantic import BaseModel, EmailStr, Field, validator
+from typing import List, Optional
+import re
+
+
+class User(BaseModel):
+    """модель пользователя"""
+    username: str
+    email: EmailStr = Field(unique=True)
+    mobile: str = Field(unique=True)
+    password: str
+    password2: str
+    is_active: Optional[bool] = True
+
+    @validator("mobile")
+    def phone_number_validation(cls, value):
+        """валидация телефоного номера"""
+
+        # Шаблон для валидации телефонного номера (например, +7 (999) 999-99-99)
+        regex = r"^\+7 \(\d{3}\) \d{3}-\d{2}-\d{2}$"
+        if not re.match(regex, value):
+            raise ValueError("Неверный формат телефонного номера.")
+        return value
+
+    @validator("password")
+    def password_validation(cls, value):
+        # проверка длины пароля
+        if len(value) < 8:
+            raise ValueError("Пароль должен быть не менее 8 символов.")
+        # Проверка на латиницу и спецсимволы
+        if not re.match(r"^[a-zA-Z0-9$%&!]*$", value):
+            raise ValueError("Пароль должен содержать только латинские буквы, цифры и символы $%&!")
+
+        # Проверка на наличие хотя бы одного символа верхнего регистра
+        if not any(c.isupper() for c in value):
+            raise ValueError("Пароль должен содержать хотя бы один символ верхнего регистра.")
+
+        # Проверка на наличие хотя бы одного спецсимвола
+        if not any(c in "$%&!" for c in value):
+            raise ValueError("Пароль должен содержать хотя бы один спецсимвол из $%&!")
+
+        return value
+
+    @validator("password2")
+    def confirm_password_validation(cls, value, values):
+        if value != values.get("password"):
+            raise ValueError("Пароли не совпадают.")
+        return value
+
+
+class Product(BaseModel):
+    """модель продукта"""
+
+    title: str
+    description: Optional[str] = None
+    price: int
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    is_active: bool
+    owner: Optional[int] = None
+
+
+class Cart(BaseModel):
+    """модель корзины"""
+
+    product: List[Product]
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class TokenData(BaseModel):
+    email: str = None
