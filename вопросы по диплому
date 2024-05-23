@@ -1,4 +1,6 @@
 1. не получается залогонится через телефон routes/auth/ @router.post("/login")
 2. авторизация через routes/auth/ @router.post("/login") не понимаю как сделать
-3. как верно обновлять БД если появились новые столбцы в модели, либо были изменения.
-скачала alembic , но выходят ошибки
+3. скачала alembic , но выходят ошибки: psycopg2 установлен по идеи.
+
+raise exc.NoSuchModuleError(
+sqlalchemy.exc.NoSuchModuleError: Can't load plugin: sqlalchemy.dialects:driver
