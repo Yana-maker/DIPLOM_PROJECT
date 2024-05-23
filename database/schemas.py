@@ -1,16 +1,27 @@
-from pydantic import BaseModel, EmailStr, Field, validator
+from fastapi import HTTPException
+from pydantic import BaseModel, EmailStr, validator
 from typing import List, Optional
 import re
 
 
 class User(BaseModel):
     """модель пользователя"""
+
+    is_active: Optional[bool] = True
+
+
+class LoginUser(BaseModel):
+    login: str
+    password: str
+
+
+class CreateUserRequest(User):
+
     username: str
-    email: EmailStr = Field(unique=True)
-    mobile: str = Field(unique=True)
+    email: EmailStr
+    mobile: str
     password: str
     password2: str
-    is_active: Optional[bool] = True
 
     @validator("mobile")
     def phone_number_validation(cls, value):
@@ -19,38 +30,49 @@ class User(BaseModel):
         # Шаблон для валидации телефонного номера (например, +7 (999) 999-99-99)
         regex = r"^\+7 \(\d{3}\) \d{3}-\d{2}-\d{2}$"
         if not re.match(regex, value):
-            raise ValueError("Неверный формат телефонного номера.")
+            raise HTTPException(status_code=400,
+                                detail="Неверный формат телефонного номера.",
+                                )
         return value
 
     @validator("password")
     def password_validation(cls, value):
         # проверка длины пароля
         if len(value) < 8:
-            raise ValueError("Пароль должен быть не менее 8 символов.")
+            raise HTTPException(status_code=400,
+                                detail="Пароль должен быть не менее 8 символов.",
+                                )
+
         # Проверка на латиницу и спецсимволы
         if not re.match(r"^[a-zA-Z0-9$%&!]*$", value):
-            raise ValueError("Пароль должен содержать только латинские буквы, цифры и символы $%&!")
+            raise HTTPException(status_code=400,
+                                detail="Пароль должен содержать только латинские буквы, цифры и символы $%&!",
+                                )
 
         # Проверка на наличие хотя бы одного символа верхнего регистра
         if not any(c.isupper() for c in value):
-            raise ValueError("Пароль должен содержать хотя бы один символ верхнего регистра.")
+            raise HTTPException(status_code=400,
+                                detail="Пароль должен содержать хотя бы один символ верхнего регистра.",
+                                )
 
         # Проверка на наличие хотя бы одного спецсимвола
         if not any(c in "$%&!" for c in value):
-            raise ValueError("Пароль должен содержать хотя бы один спецсимвол из $%&!")
-
+            raise HTTPException(status_code=400,
+                                detail="Пароль должен содержать хотя бы один спецсимвол из $%&!",
+                                )
         return value
 
     @validator("password2")
     def confirm_password_validation(cls, value, values):
         if value != values.get("password"):
-            raise ValueError("Пароли не совпадают.")
+            raise HTTPException(status_code=400,
+                                detail="Пароли не совпадают",
+                                )
         return value
 
 
 class Product(BaseModel):
     """модель продукта"""
-
     title: str
     description: Optional[str] = None
     price: int

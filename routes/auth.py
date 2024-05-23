@@ -1,50 +1,102 @@
+from datetime import timedelta
 from typing import Annotated
-import models
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, HTTPBasic, HTTPBasicCredentials
-from database import db_dependency
-from utils.support_functions import verify_password
-
-
-# Создание объекта OAuth2PasswordBearer для JWT авторизации
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+from database import models
+from fastapi import APIRouter, Depends, HTTPException
+from starlette import status
+from fastapi.security import OAuth2PasswordRequestForm
+from database.db import db_dependency
+from database.schemas import CreateUserRequest, Token, LoginUser
+from utils.auth import create_access_token, \
+    authenticate_user, bcrypt_context, user_dependency
 
 router = APIRouter(
     prefix="/auth",
     tags=["Authentication"]
 )
 
-security = HTTPBasic()
 
+@router.post('/register/', status_code=status.HTTP_201_CREATED)
+async def create_user_register(db: db_dependency, create_user_request: Annotated[CreateUserRequest, Depends()]):
+    """регистарация пользователя"""
 
-@router.get('/basic-auth/')
-async def login(credentials: Annotated[HTTPBasicCredentials, Depends(security)]):
-    """авторизация пользователя"""
-    return {
-        'massage': f'Hi! {credentials.username}',
-        'username': credentials.username,
-        'password': credentials.password
-    }
+    db_user_email = db.query(models.User).filter(models.User.email == create_user_request.email).first()
+    db_user_mobile = db.query(models.User).filter(models.User.mobile == create_user_request.mobile).first()
 
+    if db_user_email:
+        raise HTTPException(
+            status_code=400,
+            detail="такая почта уже существует"
+        )
+    if db_user_mobile:
+        raise HTTPException(
+            status_code=400,
+            detail="такой телефон уже существует"
+        )
 
-@router.get('/check_basic-auth/')
-async def check_auth_user(credentials: Annotated[HTTPBasicCredentials, Depends(security)], db: db_dependency):
-    """проверка пользователя есть он ли в БД"""
-    unauthed_exc = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Неверный логин или пароль",
-        headers={"WWW-Authenticate": "Basic"}
+    created_user_model = models.User(
+        username=create_user_request.username,
+        email=create_user_request.email,
+        mobile=create_user_request.mobile,
+        password=bcrypt_context.hash(create_user_request.password),
+        password2=bcrypt_context.hash(create_user_request.password),
+        is_active=True
 
     )
 
-    db_user = db.query(models.User).filter(models.User.username == credentials.username).first()
-    if db_user is None:
-        return unauthed_exc
+    db.add(created_user_model)
+    db.commit()
+    db.refresh(created_user_model)
 
-    if not verify_password(credentials.password.encode('utf-8'), db_user.password):
-        return unauthed_exc
+    return create_user_request
+
+
+@router.post('/token', response_model=Token)
+async def login_for_access_token(
+        form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+        db: db_dependency
+):
+    """создание токена"""
+    authed_user = authenticate_user(form_data.username, form_data.password, db)
+    if not authed_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="нет такого пользователя",
+                            )
+
+    token = create_access_token(authed_user.username, authed_user.id, timedelta(minutes=20))
+    return {'access_token': token, 'token_type': 'bearer'}
+
+
+@router.post("/login")
+async def login_user(db: db_dependency, form_data: LoginUser = Depends()):
+    """вход по телефону или почте"""
+
+    db_user_email = db.query(models.User).filter(models.User.email == form_data.login).first()
+    db_user_mobile = db.query(models.User).filter(models.User.mobile == form_data.login).first()
+
+    if not db_user_email or db_user_mobile:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='неверные почта или телефон',
+        )
+
+    if not bcrypt_context.verify(form_data.password, db_user_email.password):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="неверный пароль",
+        )
+
+    token = create_access_token(db_user_email.username, db_user_email.id, timedelta(minutes=20))
 
     return {
-        "massage": "авторизация прошла успешно",
-        "user": db_user
+        'access_token': token,
+        'token_type': 'bearer',
     }
+
+
+@router.get("/me", status_code=status.HTTP_200_OK)
+async def user(user_db: user_dependency, db: db_dependency):
+    """проверка авторизированного пользователя"""
+    if user_db is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Нет авторизированного пользователя")
+    return {'user_db': user_db}

@@ -1,10 +1,12 @@
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
-import models
-from database import db_dependency
-from schemas import Product
+from database import models
+from database.db import db_dependency
+from database.models import User
+from database.schemas import Product
 import datetime
 
+from utils.auth import get_current_user
 
 router = APIRouter(
     prefix="/products",
@@ -13,7 +15,8 @@ router = APIRouter(
 
 
 @router.post("/create/")
-async def create_product(product: Annotated[Product, Depends()], db: db_dependency):
+async def create_product(product: Annotated[Product, Depends()], db: db_dependency,
+                         current_user: User = Depends(get_current_user)):
     """создание продукта, нужно доработать"""
 
     db_product = models.Product(title=product.title, description=product.description, price=product.price,
@@ -27,7 +30,7 @@ async def create_product(product: Annotated[Product, Depends()], db: db_dependen
 
 
 @router.get("/read/{id}")
-async def read_product(product_id: int, db: db_dependency):
+async def read_product(product_id: int, db: db_dependency, current_user: User = Depends(get_current_user)):
     """просмотр продукта"""
 
     db_product = db.query(models.Product).filter(models.Product.id == product_id).first()
@@ -39,7 +42,7 @@ async def read_product(product_id: int, db: db_dependency):
 
 
 @router.delete("/delete/{id}")
-async def delete_product(product_id: int, db: db_dependency):
+async def delete_product(product_id: int, db: db_dependency, current_user: User = Depends(get_current_user)):
     """удаление продукта"""
 
     db_product = db.query(models.Product).filter(models.Product.id == product_id).first()
@@ -54,7 +57,9 @@ async def delete_product(product_id: int, db: db_dependency):
 
 
 @router.put("/update/{id}")
-async def update_product(product_id: int, product: Annotated[Product, Depends()], db: db_dependency):
+async def update_product(product_id: int, product: Annotated[Product, Depends()], db: db_dependency,
+                         current_user: User = Depends(get_current_user)
+                         ):
     """редактирование продукта"""
 
     db_product = db.query(models.Product).filter(models.Product.id == product_id).first()

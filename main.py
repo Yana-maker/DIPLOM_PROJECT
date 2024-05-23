@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-import models
-from database import engine
+from database import models
+from database.db import engine
 from routes import users, products, cart, auth
 
 
@@ -13,6 +13,6 @@ app.include_router(products.router)
 app.include_router(cart.router)
 
 
-@app.get("/")
-def root():
-    return {"message": "Welcome to the service!"}
+@app.get('/')
+async def root():
+    return "Привет!"
