@@ -93,7 +93,7 @@ async def login_user(db: db_dependency, form_data: LoginUser = Depends()):
 
 @router.get("/me", status_code=status.HTTP_200_OK)
 async def user(user_db: user_dependency, db: db_dependency):
-    """проверка авторизированного пользователя"""
+    """проверка есть ли авторизированный пользователь"""
     if user_db is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Нет авторизированного пользователя")
