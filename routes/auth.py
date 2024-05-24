@@ -7,7 +7,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from database.db import db_dependency
 from database.schemas import CreateUserRequest, Token, LoginUser
 from utils.auth import create_access_token, \
-    authenticate_user, bcrypt_context, user_dependency
+    authenticate_user, bcrypt_context, user_dependency, get_by_email_or_mobile_user
 
 router = APIRouter(
     prefix="/auth",
@@ -70,22 +70,20 @@ async def login_for_access_token(
 async def login_user(db: db_dependency, form_data: LoginUser = Depends()):
     """вход по телефону или почте"""
 
-    db_user_email = db.query(models.User).filter(models.User.email == form_data.login).first()
-    db_user_mobile = db.query(models.User).filter(models.User.mobile == form_data.login).first()
-
-    if not db_user_email or db_user_mobile:
+    user_db = get_by_email_or_mobile_user(db, form_data.login)
+    if not user_db:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='неверные почта или телефон',
-        )
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail='неверные почта или телефон',
+            )
 
-    if not bcrypt_context.verify(form_data.password, db_user_email.password):
+    if not bcrypt_context.verify(form_data.password, user_db.password):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="неверный пароль",
         )
 
-    token = create_access_token(db_user_email.username, db_user_email.id, timedelta(minutes=20))
+    token = create_access_token(user_db.username, user_db.id, timedelta(minutes=20))
 
     return {
         'access_token': token,

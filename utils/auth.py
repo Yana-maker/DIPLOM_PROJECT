@@ -6,11 +6,12 @@ from datetime import datetime, timedelta
 from starlette import status
 from database import models
 from config import SECRET_KEY, ALGORITHM
-from utils.support_functions import bcrypt_context, oauth2_bearer
+from database.db import db_dependency
+from utils.support_functions import bcrypt_context, oauth2_bearer, oauth2_scheme
 
 
-# Функция для создания токена JWT
 def create_access_token(username: str, user_id: int, expires_delta: timedelta):
+    """Функция для создания токена JWT"""
     encode = {'sub': username, 'id': user_id}
     expires = datetime.utcnow() + expires_delta
     encode.update({'exp': expires})
@@ -24,7 +25,6 @@ def authenticate_user(username: str, password: str, db):
         return False
     if not bcrypt_context.verify(password, user_db.password):
         return False
-
     return user_db
 
 
@@ -47,3 +47,12 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
         )
 
 user_dependency = Annotated[dict, Depends(get_current_user)]
+
+
+def get_by_email_or_mobile_user(db: db_dependency, login):
+    db_users = db.query(models.User).all()
+    for db_user in db_users:
+        if login in db_user.email or login in db_user.mobile:
+            return db_user
+
+
