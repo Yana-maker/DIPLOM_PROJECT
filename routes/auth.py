@@ -62,7 +62,7 @@ async def login_for_access_token(
                             detail="нет такого пользователя",
                             )
 
-    token = create_access_token(authed_user.username, authed_user.id, timedelta(minutes=20))
+    token = create_access_token({'username': authed_user.username, 'user_id': authed_user.id})
     return {'access_token': token, 'token_type': 'bearer'}
 
 
@@ -83,7 +83,7 @@ async def login_user(db: db_dependency, form_data: LoginUser = Depends()):
             detail="неверный пароль",
         )
 
-    token = create_access_token(user_db.username, user_db.id, timedelta(minutes=20))
+    token = create_access_token({'username': user_db.username, 'user_id': user_db.id})
 
     return {
         'access_token': token,

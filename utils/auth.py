@@ -1,15 +1,32 @@
-from typing import Annotated
+from typing import Annotated, Dict, Optional
 import jwt
+from ecdsa.test_keys import data
 from fastapi import Depends, HTTPException
 from jose import JWTError
 from datetime import datetime, timedelta
 from starlette import status
 from database import models
-from config import SECRET_KEY, ALGORITHM
+from settings import SECRET_KEY, ALGORITHM
 from database.db import db_dependency
 from utils.support_functions import bcrypt_context, oauth2_bearer, oauth2_scheme
 
+ACCESS_TOKEN_EXPIRE_MINUTES = 20
 
+
+
+
+def create_access_token(data: Dict, expires_delta: Optional[timedelta] = None):
+    """Создает JWT-токен."""
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+'''
 def create_access_token(username: str, user_id: int, expires_delta: timedelta):
     """Функция для создания токена JWT"""
     encode = {'sub': username, 'id': user_id}
@@ -18,6 +35,7 @@ def create_access_token(username: str, user_id: int, expires_delta: timedelta):
     return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
+'''
 def authenticate_user(username: str, password: str, db):
     # user_db = db.query(models.User).filter(models.User.username == username).first()
     user_db1 = get_by_email_or_mobile_user(db, username)

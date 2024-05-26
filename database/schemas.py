@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-from pydantic import BaseModel, EmailStr, validator
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import List, Optional
 import re
 
@@ -8,6 +8,11 @@ class User(BaseModel):
     """модель пользователя"""
 
     is_active: Optional[bool] = True
+    username: str
+    email: EmailStr
+    mobile: str
+    password: str
+    password2: str
 
 
 class LoginUser(BaseModel):
@@ -23,7 +28,7 @@ class CreateUserRequest(User):
     password: str
     password2: str
 
-    @validator("mobile")
+    @field_validator("mobile")
     def phone_number_validation(cls, value):
         """валидация телефоного номера"""
 
@@ -35,7 +40,7 @@ class CreateUserRequest(User):
                                 )
         return value
 
-    @validator("password")
+    @field_validator("password")
     def password_validation(cls, value):
         # проверка длины пароля
         if len(value) < 8:
@@ -62,7 +67,7 @@ class CreateUserRequest(User):
                                 )
         return value
 
-    @validator("password2")
+    @field_validator("password2")
     def confirm_password_validation(cls, value, values):
         if value != values.get("password"):
             raise HTTPException(status_code=400,

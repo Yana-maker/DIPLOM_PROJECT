@@ -2,13 +2,33 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from database import models
 from database.db import db_dependency
-from database.schemas import User
+from database.schemas import User, CreateUserRequest
 from utils.auth import get_current_user
+from utils.support_functions import bcrypt_context
 
 router = APIRouter(
     prefix="/users",
     tags=["Users"]
 )
+
+
+
+@router.post("/create/")
+async def create_user(user: Annotated[User, Depends()], db: db_dependency):
+    """создание пользователя"""
+    user_new = models.User(
+        username=user.username,
+        email=user.email,
+        mobile=user.mobile,
+        password=bcrypt_context.hash(user.password),
+        password2=bcrypt_context.hash(user.password),
+        is_active=True
+    )
+    db.add(user_new)
+    db.commit()
+    db.refresh(user_new)
+
+    return user
 
 
 @router.get("/read/{id}")
