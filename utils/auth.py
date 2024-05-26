@@ -20,12 +20,12 @@ def create_access_token(username: str, user_id: int, expires_delta: timedelta):
 
 def authenticate_user(username: str, password: str, db):
     user_db = db.query(models.User).filter(models.User.username == username).first()
-
-    if not user_db:
+    user_db1 = get_by_email_or_mobile_user(db, username)
+    if not user_db1:
         return False
-    if not bcrypt_context.verify(password, user_db.password):
+    if not bcrypt_context.verify(password, user_db1.password):
         return False
-    return user_db
+    return user_db1
 
 
 async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
@@ -54,5 +54,3 @@ def get_by_email_or_mobile_user(db: db_dependency, login):
     for db_user in db_users:
         if login in db_user.email or login in db_user.mobile:
             return db_user
-
-
