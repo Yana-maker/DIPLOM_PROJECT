@@ -19,7 +19,7 @@ def create_access_token(username: str, user_id: int, expires_delta: timedelta):
 
 
 def authenticate_user(username: str, password: str, db):
-    user_db = db.query(models.User).filter(models.User.username == username).first()
+    # user_db = db.query(models.User).filter(models.User.username == username).first()
     user_db1 = get_by_email_or_mobile_user(db, username)
     if not user_db1:
         return False
