@@ -34,13 +34,15 @@ def test_create_user_register(client):
 
 
 def test_login_for_access_token():
-    response = client.post(
-        "/token",
-        data={
+    data = {
             "username": "test_user",
             "password": "passworD123%"
-        }
-    )
+    }
+
+    response = client.post("/token/", json=data)
+
+    print(response.json())
+
     assert response.status_code == status.HTTP_200_OK
     assert "access_token" in response.json()
     assert response.json()["token_type"] == "bearer"

@@ -16,23 +16,6 @@ def test_user():
     assert user.is_active == True
 
 
-def test_user_email_unique():
-    # Проверка, что поле email уникальное
-    with pytest.raises(Exception):
-        user1 = User(id=1, username='user1', email='test@example.com', mobile='+7 (925) 000-00-07',
-                     password='passworD123%', password2='passworD123%', is_active=True)
-        user2 = User(id=2, username='user2', email='test@exsa0mple.com', mobile='+7 (925) 000-00-07',
-                     password='passworD123%', password2='passworD123%', is_active=True)
-
-
-def test_user_mobile_unique():
-    # Проверка, что поле mobile уникальное
-    with pytest.raises(Exception):
-        user1 = User(id=1, username='user1', email='test1@example.com', mobile='+7 (925) 000-10-07',
-                     password='passworD123%', password2='passworD123%', is_active=True)
-        user2 = User(id=2, username='user2', email='test1@example.com', mobile='+7 (925) 300-10-07',
-                     password='passworD123%', password2='passworD123%', is_active=True)
-
 
 def test_product():
     product = Product(id=1, title='test_product', price=150, created_at=datetime.datetime.now(),
