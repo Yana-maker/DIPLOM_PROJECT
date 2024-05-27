@@ -2,7 +2,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from database import models
 from database.db import db_dependency
-from database.schemas import User, CreateUserRequest
+from database.schemas import User
 from utils.auth import get_current_user
 from utils.support_functions import bcrypt_context
 
@@ -10,7 +10,6 @@ router = APIRouter(
     prefix="/users",
     tags=["Users"]
 )
-
 
 
 @router.post("/create/")

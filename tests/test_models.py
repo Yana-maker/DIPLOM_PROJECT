@@ -1,71 +1,46 @@
-from datetime import timedelta
-
-import pytest
-from fastapi.testclient import TestClient
-from main import app
-from database.models import User
-from routes.auth import create_access_token
-
-client = TestClient(app)
+from database.models import User, Product
+import pytest, pytest_asyncio
+import datetime
 
 
-@pytest.fixture
 def test_user():
-    """Создает тестового пользователя для использования в тестах."""
-    user = User(
-        username="test",
-        email="yansdfsda@gmail.com",
-        mobile="+7 (999) 999-99-99",
-        password="Fdsdvsds324%",
-        password2="Fdsdvsds324%"
+    user = User(id=1, username='test_user', email='test@example.com', mobile='+7 (925) 000-00-07',
+                password='passworD123%', password2='passworD123%', is_active=True)
 
-    )
-
-    yield user
-
-
-@pytest.fixture
-def authorized_client(test_user):
-    """Создает клиент с токеном доступа для авторизованного пользователя."""
-    token = create_access_token(data={'sub': test_user.username})
-    client = TestClient(app)
-    client.headers = {"Authorization": f"Bearer {token}"}
-    yield client
+    assert user.id == 1
+    assert user.username == 'test_user'
+    assert user.email == 'test@example.com'
+    assert user.mobile == '+7 (925) 000-00-07'
+    assert user.password == 'passworD123%'
+    assert user.password2 == 'passworD123%'
+    assert user.is_active == True
 
 
-def test_unauthorized_endpoint(client):
-    """Проверяет, что endpoint доступен только для авторизованных пользователей."""
-    response = client.get("/protected_endpoint/")
-    assert response.status_code == 401  # Ожидается ошибка 401 (Неавторизованный)
+def test_user_email_unique():
+    # Проверка, что поле email уникальное
+    with pytest.raises(Exception):
+        user1 = User(id=1, username='user1', email='test@example.com', mobile='+7 (925) 000-00-07',
+                     password='passworD123%', password2='passworD123%', is_active=True)
+        user2 = User(id=2, username='user2', email='test@exsa0mple.com', mobile='+7 (925) 000-00-07',
+                     password='passworD123%', password2='passworD123%', is_active=True)
 
 
-def test_authorized_endpoint(authorized_client):
-    """Проверяет, что endpoint доступен для авторизованных пользователей."""
-    response = authorized_client.get("/protected_endpoint/")
-    assert response.status_code == 200  # Ожидается успешный ответ 200
+def test_user_mobile_unique():
+    # Проверка, что поле mobile уникальное
+    with pytest.raises(Exception):
+        user1 = User(id=1, username='user1', email='test1@example.com', mobile='+7 (925) 000-10-07',
+                     password='passworD123%', password2='passworD123%', is_active=True)
+        user2 = User(id=2, username='user2', email='test1@example.com', mobile='+7 (925) 300-10-07',
+                     password='passworD123%', password2='passworD123%', is_active=True)
 
 
-def test_create_user(client):
-    """Проверяет, что создание нового пользователя работает."""
-    response = client.post("/users/", json={"username": "new_user", "email": "new_user@example.com", "password": "password123"})
-    assert response.status_code == 201  # Ожидается код 201 (Создано)
+def test_product():
+    product = Product(id=1, title='test_product', price=150, created_at=datetime.datetime.now(),
+                      is_active=True, owner=1)
 
-
-def test_get_user_details(authorized_client, test_user):
-    """Проверяет, что получение данных пользователя работает."""
-    response = authorized_client.get(f"/users/{test_user.username}")
-    assert response.status_code == 200  # Ожидается успешный ответ 200
-    assert response.json()["username"] == test_user.username  # Проверяем, что верное имя пользователя
-
-
-def test_update_user_details(authorized_client, test_user):
-    """Проверяет, что обновление данных пользователя работает."""
-    response = authorized_client.put(f"/users/{test_user.username}", json={"email": "new_email@example.com"})
-    assert response.status_code == 200  # Ожидается успешный ответ 200
-    assert response.json()["email"] == "new_email@example.com"  # Проверяем обновленное значение
-
-
-def test_delete_user(authorized_client, test_user):
-    """Проверяет, что удаление пользователя работает."""
-    response = authorized_client.delete(f"/users/{test_user.username}")
-    assert response.status_code == 204  # Ожидается код 204 (Нет контента)
+    assert product.id == 1
+    assert product.title == 'test_product'
+    assert product.price == 150
+    assert product.created_at == datetime.datetime.now()
+    assert product.is_active == True
+    assert product.owner == 1

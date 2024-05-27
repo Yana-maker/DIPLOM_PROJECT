@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, field_validator, validator
 from typing import List, Optional
 import re
 
@@ -67,7 +67,7 @@ class CreateUserRequest(User):
                                 )
         return value
 
-    @field_validator("password2")
+    @validator("password2")
     def confirm_password_validation(cls, value, values):
         if value != values.get("password"):
             raise HTTPException(status_code=400,

@@ -1,6 +1,5 @@
-from typing import Annotated, Dict, Optional
+from typing import Annotated
 import jwt
-from ecdsa.test_keys import data
 from fastapi import Depends, HTTPException
 from jose import JWTError
 from datetime import datetime, timedelta
@@ -8,42 +7,33 @@ from starlette import status
 from database import models
 from settings import SECRET_KEY, ALGORITHM
 from database.db import db_dependency
-from utils.support_functions import bcrypt_context, oauth2_bearer, oauth2_scheme
-
-ACCESS_TOKEN_EXPIRE_MINUTES = 20
+from settings import bcrypt_context, oauth2_bearer
 
 
-
-
-def create_access_token(data: Dict, expires_delta: Optional[timedelta] = None):
-    """Создает JWT-токен."""
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
-
-'''
-def create_access_token(username: str, user_id: int, expires_delta: timedelta):
+def create_access_token(username: any, user_id: int, expires_delta: timedelta):
     """Функция для создания токена JWT"""
-    encode = {'sub': username, 'id': user_id}
+    to_encode = {'sub': username, 'id': user_id}
     expires = datetime.utcnow() + expires_delta
-    encode.update({'exp': expires})
-    return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
+    to_encode.update({'exp': expires})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-'''
-def authenticate_user(username: str, password: str, db):
-    # user_db = db.query(models.User).filter(models.User.username == username).first()
+def authenticate_user(username: any, password: str, db):
+    """проверка авторизации пользователя"""
     user_db1 = get_by_email_or_mobile_user(db, username)
     if not user_db1:
         return False
     if not bcrypt_context.verify(password, user_db1.password):
         return False
     return user_db1
+
+
+def get_by_email_or_mobile_user(db: db_dependency, username):
+    """функция для проверки username при авторизации"""
+    db_users = db.query(models.User).all()
+    for db_user in db_users:
+        if username in db_user.mobile or username in db_user.email:
+            return db_user
 
 
 async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
@@ -64,11 +54,5 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
             detail='Нет авторизированного пользователя',
         )
 
+
 user_dependency = Annotated[dict, Depends(get_current_user)]
-
-
-def get_by_email_or_mobile_user(db: db_dependency, login):
-    db_users = db.query(models.User).all()
-    for db_user in db_users:
-        if login in db_user.email or login in db_user.mobile:
-            return db_user

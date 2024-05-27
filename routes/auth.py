@@ -1,5 +1,7 @@
 from datetime import timedelta
 from typing import Annotated
+
+import settings
 from database import models
 from fastapi import APIRouter, Depends, HTTPException
 from starlette import status
@@ -9,6 +11,7 @@ from database.schemas import CreateUserRequest, Token, LoginUser
 from utils.auth import create_access_token, \
     authenticate_user, bcrypt_context, user_dependency, get_by_email_or_mobile_user
 
+
 router = APIRouter(
     prefix="/auth",
     tags=["Authentication"]
@@ -17,7 +20,7 @@ router = APIRouter(
 
 @router.post('/register/', status_code=status.HTTP_201_CREATED)
 async def create_user_register(db: db_dependency, create_user_request: Annotated[CreateUserRequest, Depends()]):
-    """регистарация пользователя"""
+    """регистрация пользователя"""
 
     db_user_email = db.query(models.User).filter(models.User.email == create_user_request.email).first()
     db_user_mobile = db.query(models.User).filter(models.User.mobile == create_user_request.mobile).first()
@@ -46,8 +49,9 @@ async def create_user_register(db: db_dependency, create_user_request: Annotated
     db.add(created_user_model)
     db.commit()
     db.refresh(created_user_model)
+    access_token = create_access_token(created_user_model.username, created_user_model.id, timedelta(minutes=20))
 
-    return create_user_request
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 @router.post('/token', response_model=Token)
@@ -59,10 +63,11 @@ async def login_for_access_token(
     authed_user = authenticate_user(form_data.username, form_data.password, db)
     if not authed_user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail="нет такого пользователя",
+                            detail="нет такого пользователя либо неверный пароль",
                             )
 
-    token = create_access_token({'username': authed_user.username, 'user_id': authed_user.id})
+    token = create_access_token(authed_user.username, authed_user.id,
+                                timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
     return {'access_token': token, 'token_type': 'bearer'}
 
 
@@ -83,12 +88,8 @@ async def login_user(db: db_dependency, form_data: LoginUser = Depends()):
             detail="неверный пароль",
         )
 
-    token = create_access_token({'username': user_db.username, 'user_id': user_db.id})
-
-    return {
-        'access_token': token,
-        'token_type': 'bearer',
-    }
+    token = create_access_token(user_db.username, user_db.id, timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
+    return {'access_token': token, 'token_type': 'bearer'}
 
 
 @router.get("/me", status_code=status.HTTP_200_OK)
