@@ -33,7 +33,7 @@ def test_create_user_register(client):
 
 
 
-def test_login_for_access_token():
+def test_login_for_access_token(client):
     data = {
             "username": "test_user",
             "password": "passworD123%"
