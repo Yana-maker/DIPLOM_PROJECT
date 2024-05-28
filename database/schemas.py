@@ -3,6 +3,12 @@ from pydantic import BaseModel, EmailStr, field_validator, validator
 from typing import List, Optional
 import re
 
+from sqlalchemy.orm import Session
+
+from database import models
+
+from database.db import get_db, db_dependency
+
 
 class User(BaseModel):
     """модель пользователя"""
@@ -20,13 +26,14 @@ class LoginUser(BaseModel):
     password: str
 
 
-class CreateUserRequest(User):
-
+class CreateUserRequest(BaseModel):
+    is_active: Optional[bool] = True
     username: str
     email: EmailStr
     mobile: str
     password: str
     password2: str
+
 
     @field_validator("mobile")
     def phone_number_validation(cls, value):

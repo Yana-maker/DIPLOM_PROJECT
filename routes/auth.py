@@ -18,7 +18,7 @@ router = APIRouter(
 )
 
 
-@router.post('/register/', status_code=status.HTTP_201_CREATED)
+@router.post('/register/')
 async def create_user_register(db: db_dependency, create_user_request: Annotated[CreateUserRequest, Depends()]):
     """регистрация пользователя"""
 
@@ -51,10 +51,11 @@ async def create_user_register(db: db_dependency, create_user_request: Annotated
     db.refresh(created_user_model)
     access_token = create_access_token(created_user_model.username, created_user_model.id, timedelta(minutes=20))
 
-    return {"access_token": access_token, "token_type": "bearer"}
+    return created_user_model
 
 
-@router.post('/token', response_model=Token)
+
+@router.post('/token/')
 async def login_for_access_token(
         form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
         db: db_dependency
