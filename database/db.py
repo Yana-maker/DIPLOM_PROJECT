@@ -5,11 +5,8 @@ from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.orm import declarative_base
 
 URL_DATABASE = 'postgresql://postgres:432502@localhost:5432/DIPLOM_PROJECT'
-
 engine = create_engine(URL_DATABASE)
-
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
 Base = declarative_base()
 
 

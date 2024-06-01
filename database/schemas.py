@@ -1,17 +1,12 @@
 from fastapi import HTTPException
-from pydantic import BaseModel, EmailStr, field_validator, validator
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import List, Optional
 import re
-
-from sqlalchemy.orm import Session
-
-from database import models
-
-from database.db import get_db, db_dependency
+from starlette import status
 
 
 class User(BaseModel):
-    """модель пользователя"""
+    """Модель пользователя"""
 
     is_active: Optional[bool] = True
     username: str
@@ -27,17 +22,15 @@ class LoginUser(BaseModel):
 
 
 class CreateUserRequest(BaseModel):
-    is_active: Optional[bool] = True
     username: str
     email: EmailStr
     mobile: str
     password: str
     password2: str
 
-
     @field_validator("mobile")
     def phone_number_validation(cls, value):
-        """валидация телефоного номера"""
+        """Валидация телефоного номера"""
 
         # Шаблон для валидации телефонного номера (например, +7 (999) 999-99-99)
         regex = r"^\+7 \(\d{3}\) \d{3}-\d{2}-\d{2}$"
@@ -56,9 +49,9 @@ class CreateUserRequest(BaseModel):
                                 )
 
         # Проверка на латиницу и спецсимволы
-        if not re.match(r"^[a-zA-Z0-9$%&!]*$", value):
-            raise HTTPException(status_code=400,
-                                detail="Пароль должен содержать только латинские буквы, цифры и символы $%&!",
+        if not any(c.isalnum() for c in value):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail="Пароль должен содержать только латинские буквы, цифры!",
                                 )
 
         # Проверка на наличие хотя бы одного символа верхнего регистра
@@ -74,17 +67,9 @@ class CreateUserRequest(BaseModel):
                                 )
         return value
 
-    @validator("password2")
-    def confirm_password_validation(cls, value, values):
-        if value != values.get("password"):
-            raise HTTPException(status_code=400,
-                                detail="Пароли не совпадают",
-                                )
-        return value
-
 
 class Product(BaseModel):
-    """модель продукта"""
+    """Модель продукта"""
     title: str
     description: Optional[str] = None
     price: int
@@ -95,7 +80,7 @@ class Product(BaseModel):
 
 
 class Cart(BaseModel):
-    """модель корзины"""
+    """Модель корзины"""
 
     product: List[Product]
 

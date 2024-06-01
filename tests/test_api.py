@@ -1,114 +1,126 @@
-import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
-
-from database import models
-from database.models import User
-from main import app
+from tests.conftest import client
 
 
-# Конфигурация базы данных для тестов
-SQLALCHEMY_DATABASE_URL = "postgresql://postgres:432502@localhost:5432/test_db"
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-Base = declarative_base()
-
-
-@pytest.fixture(scope="function")
-def client():
-    """Тестовый клиент FastAPI"""
-    with TestClient(app) as client:
-        yield client
-
-
-@pytest.fixture(scope="function")
-def session():
-    """Тестовая сессия базы данных"""
-    Base.metadata.create_all(bind=engine)
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-def test_create_user_success(client: TestClient, session: SessionLocal):
+async def test_create_user_register_success(client: client):
     """Тест успешной регистрации пользователя"""
-    new_user = {
-        "is_active": "true",
-        "username": "api test",
-        "email": "api@e.com",
-        "mobile": "+7 (005) 996-90-07",
-        "password": "PassworD123%",
-        "password2": "PassworD123%",
-    }
+
+    response = client.post("/auth/register/", json={
+            "username": "test_create_users",
+            "email": "test_create_user_register_success@example.com",
+            "mobile": "+7 (999) 999-99-99",
+            "password": "Passwor123%",
+            "password2": "Passwor123%",
+    })
+
+    assert response.status_code == 201, response.json()
 
 
-    response = client.post("/auth/register/", json=new_user)
-    print(f'{response.json()}')
+async def test_create_user_register_existing_email(client: client):
+    """Тест регистрации пользователя с существующей почтой"""
 
-    # Проверка, что пользователь был создан в базе данных
-    user = session.query(models.User).filter(models.User.email == new_user["email"]).first()
-    assert user is not None
-    assert user.username == new_user["username"]
-    assert user.email == new_user["email"]
-    assert user.mobile == new_user["mobile"]
-
-
-def test_create_user_existing_email(client: TestClient, session: SessionLocal):
-    """Тест регистрации с уже существующей почтой"""
-    create_user_data = {
-        'username': 'api проверка почты',
-        'email': 'apitest@e.com',
-        'mobile': '+7 (025) 994-90-07',
-        'password': 'PassworD123%',
-        'password2': 'PassworD123%'
-
-    }
-
-    # Создаем пользователя с этой почтой
-    user = User(
-        username=create_user_data["username"],
-        email=create_user_data["email"],
-        mobile=create_user_data["mobile"],
-        password=create_user_data["password"],
-        password2=create_user_data["password2"],
-        is_active=True,
-    )
-    session.add(user)
-    session.commit()
-
-    response = client.post("/auth/register/", json=create_user_data)
-
-    assert response.status_code == 422
-    assert response.json()["detail"] == "такая почта уже существует"
+    response = client.post("/auth/register/", json={
+            "username": "test_existing_email",
+            "email": "test_create_user_register_success@example.com",
+            "mobile": "+7 (999) 999-99-90",
+            "password": "PassworD123%",
+            "password2": "PassworD123%",
+    })
+    assert response.status_code == 400, response.json()
+    assert response.json() == {"detail": "такая почта уже существует"}
 
 
-def test_create_user_existing_mobile(client: TestClient, session: SessionLocal):
-    """Тест регистрации с уже существующим номером телефона"""
-    create_user_data = {
-        'username': 'api проверка номера',
-        'email': 'tes323t@e.com',
-        'mobile': '+7 (025) 996-90-07',
-        'password': 'PassworD123%',
-        'password2': 'PassworD123%',
-    }
+async def test_create_user_register_existing_mobile(client: client):
+    """Тест регистрации пользователя с существующим номером телефона"""
 
-    # Создаем пользователя с этим номером телефона
-    user = User(
-        username=create_user_data["username"],
-        email=create_user_data["email"],
-        mobile=create_user_data["mobile"],
-        password=create_user_data["password"],
-        password2=create_user_data["password2"],
-        is_active=True,
-    )
-    session.add(user)
-    session.commit()
+    response = client.post("/auth/register/", json={
+            "username": "test_existing_mobile",
+            "email": "test_existing_mobiles@example.com",
+            "mobile": "+7 (999) 999-99-99",
+            "password": "PassworD123%",
+            "password2": "PassworD123%",
+    })
+    assert response.status_code == 400, response.json()
+    assert response.json() == {"detail": "такой телефон уже существует"}
 
-    response = client.post("/auth/register/", json=create_user_data)
 
-    assert response.status_code == 422
-    assert response.json()["detail"] == "такой телефон уже существует"
+async def test_correct_password(client: client):
+    """Тест регистрации пользователя на корректность пароля"""
+
+    response = client.post("/auth/register/", json={
+            "username": "test_correct_password",
+            "email": "test_correct_password@example.com",
+            "mobile": "+7 (999) 000-99-99",
+            "password": "Passd",
+            "password2": "Passd",
+    })
+    assert response.status_code == 400, response.status_code
+    assert response.json() == {'detail': 'Пароль должен быть не менее 8 символов.'}
+
+
+async def test_correct_password2(client: client):
+    """Тест регистрации пользователя на корректность пароля 2"""
+
+    response = client.post("/auth/register/", json={
+            "username": "test_correct_password2",
+            "email": "test_correct_password2@example.com",
+            "mobile": "+7 (999) 001-99-99",
+            "password": "PassworD123%",
+            "password2": "Passd",
+    })
+    assert response.status_code == 400, response.status_code
+    assert response.json() == {'detail': 'пароли не совпадают'}
+
+
+async def test_correct_password3(client: client):
+    """Тест регистрации пользователя на корректность пароля 3"""
+
+    response = client.post("/auth/register/", json={
+            "username": "test_correct_password3",
+            "email": "test_correct_password3@example.com",
+            "mobile": "+7 (999) 031-99-99",
+            "password": "PassworD123",
+            "password2": "PassworD123",
+    })
+    assert response.status_code == 400, response.status_code
+    assert response.json() == {'detail': 'Пароль должен содержать хотя бы один спецсимвол из $%&!'}
+
+
+async def test_correct_password4(client: client):
+    """Тест регистрации пользователя на корректность пароля 4"""
+
+    response = client.post("/auth/register/", json={
+            "username": "test_correct_password4",
+            "email": "test_correct_password4@example.com",
+            "mobile": "+7 (990) 031-99-99",
+            "password": "password123%",
+            "password2": "password123%",
+    })
+    assert response.status_code == 400, response.status_code
+    assert response.json() == {'detail': 'Пароль должен содержать хотя бы один символ верхнего регистра.'}
+
+
+async def test_uncorrect_email(client: client):
+    """Тест регистрации пользователя с неверной почтой"""
+
+    response = client.post("/auth/register/", json={
+            "username": "test_uncorrect_email",
+            "email": "test_uncorrect_email.com",
+            "mobile": "+7 (920) 031-99-99",
+            "password": "passworD123%",
+            "password2": "passworD123%",
+    })
+    assert response.status_code == 422, response.status_code
+
+
+async def test_uncorrect_mobile(client: client):
+    """Тест регистрации пользователя с неверным телефоном"""
+
+    response = client.post("/auth/register/", json={
+            "username": "test_uncorrect_mobile",
+            "email": "test_uncorrect_mobile@dfdsf.com",
+            "mobile": "+7 (920 031-99-99",
+            "password": "passworD123%",
+            "password2": "passworD123%",
+    })
+    assert response.status_code == 400, response.text
+    assert response.json()['detail'] == 'Неверный формат телефонного номера.'

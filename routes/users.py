@@ -13,8 +13,8 @@ router = APIRouter(
 
 
 @router.post("/create/")
-async def create_user(user: Annotated[User, Depends()], db: db_dependency):
-    """создание пользователя"""
+async def create_user(user: User, db: db_dependency):
+    """Создание пользователя"""
     user_new = models.User(
         username=user.username,
         email=user.email,
@@ -32,7 +32,7 @@ async def create_user(user: Annotated[User, Depends()], db: db_dependency):
 
 @router.get("/read/{id}")
 async def read_user(user_id: int, db: db_dependency, current_user: User = Depends(get_current_user)):
-    """просмотр пользователя"""
+    """Просмотр пользователя"""
 
     result = db.query(models.User).filter(models.User.id == user_id).first()
     if not result:
@@ -43,7 +43,7 @@ async def read_user(user_id: int, db: db_dependency, current_user: User = Depend
 
 @router.delete("/delete/{id}")
 async def delete_user(user_id: int, db: db_dependency, current_user: User = Depends(get_current_user)):
-    """удаление пользователя"""
+    """Удаление пользователя"""
 
     result = db.query(models.User).filter(models.User.id == user_id).first()
     if not result:
@@ -58,7 +58,7 @@ async def delete_user(user_id: int, db: db_dependency, current_user: User = Depe
 @router.put("/put/{id}")
 async def update_user(user_id: int, user: Annotated[User, Depends()], db: db_dependency,
                       current_user: User = Depends(get_current_user)):
-    """редактирование пользователя"""
+    """Редактирование пользователя"""
 
     result = db.query(models.User).filter(models.User.id == user_id).first()
 

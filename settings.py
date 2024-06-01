@@ -2,9 +2,14 @@ import os
 from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer
 from dotenv import load_dotenv
-
+import logging
 # Load .env file
 load_dotenv('.env')
+
+
+# Настройка логирования
+logging.basicConfig(level=logging.DEBUG)  # Установите уровень логирования на DEBUG
+logger = logging.getLogger(__name__)  # Получите логгер для текущего модуля
 
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

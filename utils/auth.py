@@ -19,7 +19,7 @@ def create_access_token(username: any, user_id: int, expires_delta: timedelta):
 
 
 def authenticate_user(username: any, password: str, db):
-    """проверка авторизации пользователя"""
+    """Проверка авторизации пользователя"""
     user_db1 = get_by_email_or_mobile_user(db, username)
     if not user_db1:
         return False
