@@ -29,7 +29,7 @@ def authenticate_user(username: any, password: str, db):
 
 
 def get_by_email_or_mobile_user(db: db_dependency, username):
-    """функция для проверки username при авторизации"""
+    """Функция для проверки username при авторизации"""
     db_users = db.query(models.User).all()
     for db_user in db_users:
         if username in db_user.mobile or username in db_user.email:
@@ -37,7 +37,7 @@ def get_by_email_or_mobile_user(db: db_dependency, username):
 
 
 async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
-    """функция для проверки авторизированного пользователя"""
+    """Функция для проверки авторизированного пользователя"""
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get('sub')

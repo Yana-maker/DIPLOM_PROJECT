@@ -15,12 +15,14 @@ def mock_bcrypt_context(monkeypatch):
 
 
 def test_hash_password(mock_bcrypt_context):
+    """Тестирование функции хеширования пароля"""
     password = "mypassword"
     hashed_password = hash_password(password)
     assert hashed_password == "hashed_mypassword"
 
 
 def test_verify_password(mock_bcrypt_context):
+    """Тестирование проверки пароля"""
     plain_password = "mypassword"
     hashed_password = "hashed_mypassword"
     assert verify_password(plain_password, hashed_password) == True
