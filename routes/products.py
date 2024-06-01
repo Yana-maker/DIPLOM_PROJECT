@@ -17,7 +17,7 @@ router = APIRouter(
 @router.post("/create/")
 async def create_product(product: Annotated[Product, Depends()], db: db_dependency,
                          current_user: User = Depends(get_current_user)):
-    """создание продукта, нужно доработать"""
+    """Создание продукта, нужно доработать"""
 
     db_product = models.Product(title=product.title, description=product.description, price=product.price,
                                 created_at=datetime.datetime.now(), is_active=product.is_active, owner=product.owner)
